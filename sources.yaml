@@ -1,0 +1,69 @@
+sources:
+- name: Hacker News
+  url: https://news.ycombinator.com/rss
+  enabled: true
+  category: tech
+- name: Ars Technica
+  url: http://feeds.arstechnica.com/arstechnica/index
+  enabled: true
+  category: tech
+- name: The Verge
+  url: https://www.theverge.com/rss/index.xml
+  enabled: false
+  category: tech
+- name: TechCrunch
+  url: https://techcrunch.com/feed/
+  enabled: false
+  category: tech
+- name: Wired
+  url: https://www.wired.com/feed/rss
+  enabled: true
+  category: tech
+- name: Slashdot
+  url: http://rss.slashdot.org/Slashdot/slashdotMain
+  enabled: true
+  category: tech
+- name: Daring Fireball
+  url: https://daringfireball.net/feeds/main
+  enabled: false
+  category: tech
+- name: Techmeme
+  url: https://www.techmeme.com/feed.xml
+  enabled: false
+  category: tech
+- name: MIT Technology Review
+  url: https://www.technologyreview.com/feed/
+  enabled: false
+  category: tech
+- name: The Register
+  url: https://www.theregister.com/headlines.atom
+  enabled: true
+  category: tech
+- name: Reddit /r/technology
+  url: https://www.reddit.com/r/technology/.rss
+  enabled: true
+  category: tech
+- name: Reddit /r/programming
+  url: https://www.reddit.com/r/programming/.rss
+  enabled: true
+  category: dev
+- name: Lobsters
+  url: https://lobste.rs/rss
+  enabled: false
+  category: dev
+- name: InfoQ
+  url: https://feed.infoq.com
+  enabled: false
+  category: dev
+- name: BBC Technology
+  url: http://feeds.bbci.co.uk/news/technology/rss.xml
+  enabled: true
+  category: tech
+- name: MacRumors
+  url: https://feeds.macrumors.com/MacRumors-All
+  enabled: false
+  category: tech
+- name: Android Police
+  url: https://www.androidpolice.com/feed/
+  enabled: true
+  category: tech

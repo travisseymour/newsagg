@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if query %}Search: {{ query }} — {% endif %}NewsAgg</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0e0e0e;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --border-light: #1e1e1e;
+      --accent: #e8ff47;
+      --accent-dim: rgba(232,255,71,0.12);
+      --text: #e8e6e0;
+      --text-muted: #666;
+      --text-dim: #999;
+      --link: #c8e6ff;
+      --link-hover: #ffffff;
+      --red: #ff5a5a;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Newsreader', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --border: #ddd;
+      --border-light: #e8e8e8;
+      --accent: #0066cc;
+      --accent-dim: rgba(0,102,204,0.1);
+      --text: #1a1a1a;
+      --text-muted: #888;
+      --text-dim: #666;
+      --link: #0055aa;
+      --link-hover: #003366;
+    }
+
+    [data-theme="light"] header {
+      background: rgba(255,255,255,0.95);
+    }
+
+    [data-theme="light"] .logo span {
+      color: var(--text-muted);
+    }
+
+    [data-theme="light"] .article-item:hover {
+      background: rgba(0,0,0,0.03);
+    }
+
+    [data-theme="light"] .article-link:visited .article-title {
+      color: var(--text-muted);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ───────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(14,14,14,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      height: 52px;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .logo span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .search-form {
+      flex: 1;
+      max-width: 480px;
+      position: relative;
+    }
+
+    .search-form input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.45rem 2.5rem 0.45rem 0.75rem;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-form input:focus { border-color: var(--accent); }
+    .search-form input::placeholder { color: var(--text-muted); }
+
+    .search-form button {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0 0.2rem;
+      transition: color 0.15s;
+    }
+    .search-form button:hover { color: var(--accent); }
+
+    .header-meta {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .updated-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pulse {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .refresh-btn.running { border-color: var(--accent); color: var(--accent); }
+
+    .spin { display: inline-block; }
+    .running .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BANNER (search / empty state) ──────── */
+    .banner {
+      background: var(--accent-dim);
+      border-bottom: 1px solid rgba(232,255,71,0.2);
+      padding: 0.6rem 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+    .banner strong { font-weight: 600; }
+    .banner a { color: var(--accent); }
+
+    /* ── MAIN LAYOUT ─────────────────────────── */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .feeds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ── FEED CARD ──────────────────────────── */
+    .feed-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: fadeUp 0.35s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* stagger cards */
+    .feed-card:nth-child(1)  { animation-delay: 0.02s; }
+    .feed-card:nth-child(2)  { animation-delay: 0.05s; }
+    .feed-card:nth-child(3)  { animation-delay: 0.08s; }
+    .feed-card:nth-child(4)  { animation-delay: 0.11s; }
+    .feed-card:nth-child(5)  { animation-delay: 0.14s; }
+    .feed-card:nth-child(6)  { animation-delay: 0.17s; }
+    .feed-card:nth-child(7)  { animation-delay: 0.20s; }
+    .feed-card:nth-child(8)  { animation-delay: 0.23s; }
+
+    .feed-header {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .feed-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    /* ── SOURCE HEADER COLORS (inspired by techurls.com) ── */
+    .feed-header { background: linear-gradient(135deg, #555 0%, #333 100%); }
+    .feed-header.src-Hacker_News { background: linear-gradient(135deg, #ff6600 0%, #e65c00 100%); }
+    .feed-header.src-Ars_Technica { background: linear-gradient(135deg, #ff4e00 0%, #e64500 100%); }
+    .feed-header.src-The_Verge { background: linear-gradient(135deg, #393092 0%, #30287b 100%); }
+    .feed-header.src-TechCrunch { background: linear-gradient(135deg, #04a765 0%, #01d503 100%); }
+    .feed-header.src-Wired { background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); }
+    .feed-header.src-Slashdot { background: linear-gradient(135deg, #007f80 0%, #006666 100%); }
+    .feed-header.src-Daring_Fireball { background: linear-gradient(135deg, #4a525a 0%, #3a424a 100%); }
+    .feed-header.src-Techmeme { background: linear-gradient(135deg, #22546d 0%, #1d485e 100%); }
+    .feed-header.src-MIT_Technology_Review { background: linear-gradient(135deg, #a31c34 0%, #8a1729 100%); }
+    .feed-header.src-The_Register { background: linear-gradient(135deg, #e22d35 0%, #c4272e 100%); }
+    .feed-header.src-Reddit__r_technology { background: linear-gradient(135deg, #ff4500 0%, #e63e00 100%); }
+    .feed-header.src-Reddit__r_programming { background: linear-gradient(135deg, #ff4500 0%, #e63e00 100%); }
+    .feed-header.src-Lobsters { background: linear-gradient(135deg, #ac130d 0%, #8a0f0a 100%); }
+    .feed-header.src-InfoQ { background: linear-gradient(135deg, #2d6cb4 0%, #255a96 100%); }
+    .feed-header.src-BBC_Technology { background: linear-gradient(135deg, #cc0101 0%, #a30000 100%); }
+    .feed-header.src-MacRumors { background: linear-gradient(135deg, #3a7ca5 0%, #2f6589 100%); }
+    .feed-header.src-Android_Police { background: linear-gradient(135deg, #a4c639 0%, #8ab02e 100%); }
+
+    .feed-count {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: #fff;
+      background: rgba(0,0,0,0.25);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+    }
+
+    .feed-articles {
+      list-style: none;
+      flex: 1;
+    }
+
+    .article-item {
+      border-bottom: 1px solid var(--border-light);
+      transition: background 0.1s;
+    }
+    .article-item:last-child { border-bottom: none; }
+    .article-item:hover { background: rgba(255,255,255,0.025); }
+
+    .article-link {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      padding: 0.55rem 1rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .article-age {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      min-width: 2.5rem;
+      text-align: right;
+    }
+
+    .article-title {
+      font-size: 0.88rem;
+      color: var(--link);
+      line-height: 1.4;
+      transition: color 0.1s;
+    }
+    .article-item:hover .article-title { color: var(--link-hover); }
+
+    /* Visited state */
+    .article-link:visited .article-title { color: var(--text-muted); }
+
+    /* ── EMPTY / ERROR STATES ─────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+    .empty-state h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+    .empty-state code {
+      display: inline-block;
+      margin-top: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* ── FOOTER ──────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-light);
+      padding: 1.5rem 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    /* ── RESPONSIVE ────────────────────────── */
+    @media (max-width: 640px) {
+      .header-meta { display: none; }
+      .container { padding: 1rem; }
+      .feeds-grid { grid-template-columns: 1fr; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/">News<span>Agg</span></a>
+    <form class="search-form" action="/search" method="get">
+      <input
+        type="text"
+        name="q"
+        placeholder="search headlines…"
+        value="{{ query or '' }}"
+        autocomplete="off"
+      >
+      <button type="submit">⌕</button>
+    </form>
+    <div class="header-meta">
+      <div class="updated-badge">
+        <span class="pulse"></span>
+        <span id="updated-label">updated {{ last_updated }}</span>
+      </div>
+      <span>{{ total_sources }} sources</span>
+      <button class="refresh-btn" id="refresh-btn" onclick="triggerScrape()" title="Refresh all feeds">
+        <span class="spin" id="refresh-icon">↻</span>
+        <span id="refresh-label">refresh</span>
+      </button>
+      <button class="refresh-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+        <span id="theme-icon">☀</span>
+      </button>
+      <a class="admin-link" href="/admin">admin</a>
+    </div>
+  </div>
+</header>
+
+{% if query %}
+<div class="banner">
+  {% if total_results %}
+    <strong>{{ total_results }} result{{ 's' if total_results != 1 }}</strong> for "<strong>{{ query }}</strong>" &nbsp;·&nbsp; <a href="/">clear</a>
+  {% else %}
+    No results for "<strong>{{ query }}</strong>" &nbsp;·&nbsp; <a href="/">clear</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="container">
+  {% if feeds %}
+  <div class="feeds-grid">
+    {% for feed in feeds %}
+    <div class="feed-card">
+      <div class="feed-header src-{{ feed.name | safe_filename }}">
+        <span class="feed-name">{{ feed.name }}</span>
+        <span class="feed-count">{{ feed.articles | length }}</span>
+      </div>
+      <ul class="feed-articles">
+        {% for article in feed.articles %}
+        <li class="article-item">
+          <a class="article-link" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">
+            <span class="article-age">{{ article.age or '—' }}</span>
+            <span class="article-title">{{ article.title }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    {% if refreshing %}
+    <h2>Refreshing feeds…</h2>
+    <p>Fetching articles from your sources. This page will reload when ready.</p>
+    {% else %}
+    <h2>No feeds yet.</h2>
+    <p>Click the refresh button to fetch articles, or add sources in the admin panel.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<footer>
+  <a href="/">NewsAgg</a> &nbsp;·&nbsp;
+  <a href="/admin">admin</a> &nbsp;·&nbsp;
+  <a href="/api/feeds">json api</a>
+</footer>
+
+<script>
+  // ── Theme toggle ──
+  const themeIcon = document.getElementById('theme-icon');
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    themeIcon.textContent = theme === 'light' ? '☾' : '☀';
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'light' ? 'dark' : 'light');
+  }
+
+  // Load saved theme or default to dark
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  setTheme(savedTheme);
+
+  // ── Refresh button ──
+  const btn = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  const label = document.getElementById('refresh-label');
+  const updatedLabel = document.getElementById('updated-label');
+  let pollInterval = null;
+
+  function setRunning(running) {
+    btn.disabled = running;
+    btn.classList.toggle('running', running);
+    label.textContent = running ? 'running…' : 'refresh';
+  }
+
+  function pollStatus() {
+    fetch('/api/scrape/status')
+      .then(r => r.json())
+      .then(data => {
+        setRunning(data.running);
+        updatedLabel.textContent = 'updated ' + data.last_updated;
+        if (!data.running) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+          // Reload the page to show fresh articles
+          window.location.reload();
+        }
+      })
+      .catch(() => {
+        clearInterval(pollInterval);
+        pollInterval = null;
+        setRunning(false);
+      });
+  }
+
+  function triggerScrape() {
+    fetch('/api/scrape', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'started' || data.status === 'already_running') {
+          setRunning(true);
+          pollInterval = setInterval(pollStatus, 2000);
+        }
+      })
+      .catch(() => setRunning(false));
+  }
+
+  // If a scrape is running (either already in progress or auto-triggered), start polling
+  {% if refreshing %}
+  setRunning(true);
+  pollInterval = setInterval(pollStatus, 2000);
+  {% else %}
+  fetch('/api/scrape/status')
+    .then(r => r.json())
+    .then(data => {
+      if (data.running) {
+        setRunning(true);
+        pollInterval = setInterval(pollStatus, 2000);
+      }
+    });
+  {% endif %}
+</script>
+</body>
+</html>
