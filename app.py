@@ -1,4 +1,30 @@
 """
+GEMSedit: Environment Editor for GEMS (Graphical Environment Management System)
+Copyright (C) 2021-2026 Travis L. Seymour, PhD
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+import yaml
+from flask import Flask, jsonify, redirect, render_template, request, url_for
+
+"""
 app.py — Flask news aggregator.
 
 Local dev:
@@ -10,14 +36,6 @@ Railway:
     - Set NEWSAGG_ADMIN_PASSWORD in environment variables
     - Uses railway.toml for config, gunicorn as WSGI server
 """
-
-import json
-import os
-from datetime import datetime, timezone
-from pathlib import Path
-
-import yaml
-from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).parent
 CACHE_DIR = BASE_DIR / "cache"
