@@ -275,6 +275,7 @@
     .feed-header.src-The_Register { background: linear-gradient(135deg, #e22d35 0%, #c4272e 100%); }
     .feed-header.src-Reddit__r_technology { background: linear-gradient(135deg, #ff4500 0%, #e63e00 100%); }
     .feed-header.src-Reddit__r_programming { background: linear-gradient(135deg, #ff4500 0%, #e63e00 100%); }
+    .feed-header.src-Reddit__r_python { background: linear-gradient(135deg, #ff6a33 0%, #ff5722 100%); }
     .feed-header.src-Lobsters { background: linear-gradient(135deg, #ac130d 0%, #8a0f0a 100%); }
     .feed-header.src-InfoQ { background: linear-gradient(135deg, #2d6cb4 0%, #255a96 100%); }
     .feed-header.src-BBC_Technology { background: linear-gradient(135deg, #cc0101 0%, #a30000 100%); }
@@ -313,7 +314,7 @@
 
     .article-age {
       font-family: var(--font-mono);
-      font-size: 0.62rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       flex-shrink: 0;
       min-width: 2.5rem;
@@ -321,7 +322,8 @@
     }
 
     .article-title {
-      font-size: 0.88rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
       color: var(--link);
       line-height: 1.4;
       transition: color 0.1s;
@@ -367,11 +369,68 @@
     footer a { color: var(--text-muted); text-decoration: none; }
     footer a:hover { color: var(--accent); }
 
+    /* ── MOBILE TOOLBAR ─────────────────────── */
+    .mobile-toolbar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(14,14,14,0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+    }
+
+    [data-theme="light"] .mobile-toolbar {
+      background: rgba(255,255,255,0.95);
+    }
+
+    .mobile-toolbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .mobile-toolbar .updated-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mobile-toolbar .updated-badge span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-toolbar .toolbar-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .mobile-toolbar .refresh-btn {
+      padding: 0.4rem 0.6rem;
+    }
+
     /* ── RESPONSIVE ────────────────────────── */
     @media (max-width: 640px) {
       .header-meta { display: none; }
-      .container { padding: 1rem; }
+      .mobile-toolbar { display: block; }
+      .container { padding: 1rem; padding-bottom: 4rem; }
       .feeds-grid { grid-template-columns: 1fr; gap: 1rem; }
+      footer { padding-bottom: 4rem; }
     }
   </style>
 </head>
@@ -460,14 +519,36 @@
   <a href="/api/feeds">json api</a>
 </footer>
 
+<!-- Mobile toolbar (visible on small screens) -->
+<div class="mobile-toolbar">
+  <div class="mobile-toolbar-inner">
+    <div class="updated-badge">
+      <span class="pulse"></span>
+      <span id="mobile-updated-label">{{ last_updated }}</span>
+    </div>
+    <div class="toolbar-buttons">
+      <button class="refresh-btn" id="mobile-refresh-btn" onclick="triggerScrape()" title="Refresh all feeds">
+        <span class="spin" id="mobile-refresh-icon">↻</span>
+      </button>
+      <button class="refresh-btn" id="mobile-theme-btn" onclick="toggleTheme()" title="Toggle theme">
+        <span id="mobile-theme-icon">☀</span>
+      </button>
+      <a class="refresh-btn" href="/admin" style="text-decoration: none;">admin</a>
+    </div>
+  </div>
+</div>
+
 <script>
   // ── Theme toggle ──
   const themeIcon = document.getElementById('theme-icon');
+  const mobileThemeIcon = document.getElementById('mobile-theme-icon');
 
   function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-    themeIcon.textContent = theme === 'light' ? '☾' : '☀';
+    const icon = theme === 'light' ? '☾' : '☀';
+    if (themeIcon) themeIcon.textContent = icon;
+    if (mobileThemeIcon) mobileThemeIcon.textContent = icon;
   }
 
   function toggleTheme() {
@@ -484,12 +565,21 @@
   const icon = document.getElementById('refresh-icon');
   const label = document.getElementById('refresh-label');
   const updatedLabel = document.getElementById('updated-label');
+  const mobileBtn = document.getElementById('mobile-refresh-btn');
+  const mobileIcon = document.getElementById('mobile-refresh-icon');
+  const mobileUpdatedLabel = document.getElementById('mobile-updated-label');
   let pollInterval = null;
 
   function setRunning(running) {
-    btn.disabled = running;
-    btn.classList.toggle('running', running);
-    label.textContent = running ? 'running…' : 'refresh';
+    if (btn) {
+      btn.disabled = running;
+      btn.classList.toggle('running', running);
+    }
+    if (label) label.textContent = running ? 'running…' : 'refresh';
+    if (mobileBtn) {
+      mobileBtn.disabled = running;
+      mobileBtn.classList.toggle('running', running);
+    }
   }
 
   function pollStatus() {
@@ -497,7 +587,8 @@
       .then(r => r.json())
       .then(data => {
         setRunning(data.running);
-        updatedLabel.textContent = 'updated ' + data.last_updated;
+        if (updatedLabel) updatedLabel.textContent = 'updated ' + data.last_updated;
+        if (mobileUpdatedLabel) mobileUpdatedLabel.textContent = data.last_updated;
         if (!data.running) {
           clearInterval(pollInterval);
           pollInterval = null;
