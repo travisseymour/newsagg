@@ -120,6 +120,9 @@ def fetch_source(source: dict) -> dict:
                 }
             )
 
+        # Sort articles by published date (newest first)
+        articles.sort(key=lambda a: a["published"] or "", reverse=True)
+
         result = {
             "name": name,
             "url": url,
