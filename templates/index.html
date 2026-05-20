@@ -294,6 +294,51 @@
     .feed-articles {
       list-style: none;
       flex: 1;
+      max-height: calc(5 * 2.5rem); /* Show ~5 articles initially */
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .feed-articles.expanded {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    /* Scrollbar styling for expanded lists */
+    .feed-articles.expanded::-webkit-scrollbar {
+      width: 6px;
+    }
+    .feed-articles.expanded::-webkit-scrollbar-track {
+      background: var(--border-light);
+    }
+    .feed-articles.expanded::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    .feed-articles.expanded::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .load-more-btn {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border: none;
+      border-top: 1px solid var(--border-light);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .load-more-btn:hover {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    .load-more-btn.hidden {
+      display: none;
     }
 
     .article-item {
@@ -486,7 +531,7 @@
         <span class="feed-name">{{ feed.name }}</span>
         <span class="feed-count">{{ feed.articles | length }}</span>
       </div>
-      <ul class="feed-articles">
+      <ul class="feed-articles" data-total="{{ feed.articles | length }}">
         {% for article in feed.articles %}
         <li class="article-item">
           <a class="article-link" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">
@@ -496,6 +541,11 @@
         </li>
         {% endfor %}
       </ul>
+      {% if feed.articles | length > 5 %}
+      <button class="load-more-btn" onclick="toggleLoadMore(this)">
+        + {{ feed.articles | length - 5 }} more stories
+      </button>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
@@ -539,6 +589,20 @@
 </div>
 
 <script>
+  // ── Load More toggle ──
+  function toggleLoadMore(btn) {
+    const card = btn.closest('.feed-card');
+    const list = card.querySelector('.feed-articles');
+    const total = parseInt(list.dataset.total, 10);
+    const isExpanded = list.classList.toggle('expanded');
+
+    if (isExpanded) {
+      btn.textContent = '− show less';
+    } else {
+      btn.textContent = '+ ' + (total - 5) + ' more stories';
+    }
+  }
+
   // ── Theme toggle ──
   const themeIcon = document.getElementById('theme-icon');
   const mobileThemeIcon = document.getElementById('mobile-theme-icon');
