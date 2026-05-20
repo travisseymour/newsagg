@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
 import os
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -120,6 +121,33 @@ def last_updated() -> str:
     if age < 86400:
         return f"{age // 3600}h ago"
     return f"{age // 86400}d ago"
+
+
+def get_version() -> str:
+    """Return the short git commit hash, or 'dev' if not in a git repo."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=BASE_DIR,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "dev"
+
+
+# Cache the version at startup (it won't change while running)
+APP_VERSION = get_version()
+
+
+@app.context_processor
+def inject_version():
+    """Make version available in all templates."""
+    return {"app_version": APP_VERSION}
 
 
 # ─────────────────────────────────────────────
