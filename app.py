@@ -52,12 +52,15 @@ ADMIN_PASSWORD = os.environ.get("NEWSAGG_ADMIN_PASSWORD", "changeme")
 #  Helpers
 # ─────────────────────────────────────────────
 
+
 def load_sources_config() -> list[dict]:
     return yaml.safe_load(SOURCES_FILE.read_text())["sources"]
 
 
 def save_sources_config(sources: list[dict]):
-    SOURCES_FILE.write_text(yaml.dump({"sources": sources}, allow_unicode=True, sort_keys=False))
+    SOURCES_FILE.write_text(
+        yaml.dump({"sources": sources}, allow_unicode=True, sort_keys=False)
+    )
 
 
 def safe_filename(name: str) -> str:
@@ -154,6 +157,7 @@ def inject_version():
 #  Routes
 # ─────────────────────────────────────────────
 
+
 @app.route("/")
 def index():
     global _scrape_running
@@ -207,7 +211,8 @@ def search():
         if not cache:
             continue
         matches = [
-            a for a in cache.get("articles", [])
+            a
+            for a in cache.get("articles", [])
             if q in a["title"].lower() or q in a["url"].lower()
         ]
         if matches:
@@ -239,7 +244,9 @@ def admin():
             pw = request.form.get("password", "")
             if pw == ADMIN_PASSWORD:
                 resp = redirect(url_for("admin"))
-                resp.set_cookie("admin_authed", ADMIN_PASSWORD, httponly=True, samesite="Lax")
+                resp.set_cookie(
+                    "admin_authed", ADMIN_PASSWORD, httponly=True, samesite="Lax"
+                )
                 return resp
             else:
                 error = "Wrong password."
@@ -263,7 +270,9 @@ def admin():
             category = request.form.get("new_category", "tech").strip()
             if name and url:
                 sources = load_sources_config()
-                sources.append({"name": name, "url": url, "enabled": True, "category": category})
+                sources.append(
+                    {"name": name, "url": url, "enabled": True, "category": category}
+                )
                 save_sources_config(sources)
                 success = f"Added '{name}'. Re-run the scraper to fetch it."
             else:
@@ -340,13 +349,16 @@ def api_scrape():
 
 @app.route("/api/scrape/status")
 def api_scrape_status():
-    return jsonify({
-        "running": _scrape_running,
-        "updated_at": load_manifest().get("updated_at", ""),
-        "last_updated": last_updated(),
-    })
+    return jsonify(
+        {
+            "running": _scrape_running,
+            "updated_at": load_manifest().get("updated_at", ""),
+            "last_updated": last_updated(),
+        }
+    )
 
 
 if __name__ == "__main__":
     # Run locally in debug mode
+    # Just load the venv and then run `python app.py`
     app.run(debug=True, port=5000)
