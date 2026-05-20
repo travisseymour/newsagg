@@ -294,13 +294,13 @@
     .feed-articles {
       list-style: none;
       flex: 1;
-      max-height: calc(5 * 2.5rem); /* Show ~5 articles initially */
+      max-height: calc(10 * 2.5rem); /* Show ~10 articles initially */
       overflow: hidden;
       transition: max-height 0.3s ease;
     }
 
     .feed-articles.expanded {
-      max-height: 400px;
+      max-height: calc(35 * 2.5rem); /* Show up to 35 articles when expanded */
       overflow-y: auto;
     }
 
@@ -541,9 +541,9 @@
         </li>
         {% endfor %}
       </ul>
-      {% if feed.articles | length > 5 %}
+      {% if feed.articles | length > 10 %}
       <button class="load-more-btn" onclick="toggleLoadMore(this)">
-        + {{ feed.articles | length - 5 }} more stories
+        + {{ feed.articles | length - 10 }} more stories
       </button>
       {% endif %}
     </div>
@@ -600,7 +600,7 @@
     if (isExpanded) {
       btn.textContent = '− show less';
     } else {
-      btn.textContent = '+ ' + (total - 5) + ' more stories';
+      btn.textContent = '+ ' + (total - 10) + ' more stories';
     }
   }
 
