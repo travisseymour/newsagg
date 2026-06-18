@@ -266,10 +266,10 @@
 
 <header>
   <div class="header-inner">
-    <a class="logo" href="/">News<span>Agg</span></a>
+    <a class="logo" href="{{ url_for('newsagg.index') }}">News<span>Agg</span></a>
     <nav class="nav-links">
-      <a href="/">← feed</a>
-      {% if authed %}<a href="/admin/logout">logout</a>{% endif %}
+      <a href="{{ url_for('newsagg.index') }}">← feed</a>
+      {% if authed %}<a href="{{ url_for('newsagg.admin_logout') }}">logout</a>{% endif %}
     </nav>
   </div>
 </header>
