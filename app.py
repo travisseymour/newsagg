@@ -4,23 +4,26 @@ Root Flask application for firfly.us
 This app serves:
 - / → Landing page
 - /newsagg/* → NewsAgg news aggregator (via Blueprint)
-- Future endpoints can be added here
+- /url/* → URL Shortener admin (via Blueprint)
+- /<code> → Short URL redirects
 """
 
 import os
 import subprocess
 from pathlib import Path
 
-from flask import Flask, render_template
+from flask import Flask, abort, redirect, render_template
 
 from newsagg_bp import newsagg_bp
+from urlshort_bp import urlshort_bp, get_url_by_code, increment_clicks
 
 BASE_DIR = Path(__file__).parent
 
 app = Flask(__name__)
 
-# Register the NewsAgg blueprint at /newsagg
+# Register blueprints
 app.register_blueprint(newsagg_bp, url_prefix="/newsagg")
+app.register_blueprint(urlshort_bp, url_prefix="/url")
 
 
 # ─────────────────────────────────────────────
@@ -70,6 +73,21 @@ def inject_version():
 def landing():
     """Simple landing page for firfly.us"""
     return render_template("landing.html")
+
+
+# ─────────────────────────────────────────────
+#  Short URL redirect (catch-all, must be last)
+# ─────────────────────────────────────────────
+
+
+@app.route("/<code>")
+def short_redirect(code: str):
+    """Redirect short URLs to their targets."""
+    url_data = get_url_by_code(code)
+    if url_data:
+        increment_clicks(code)
+        return redirect(url_data["url"])
+    abort(404)
 
 
 if __name__ == "__main__":

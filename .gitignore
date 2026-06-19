@@ -11,6 +11,9 @@ env/
 # Generated cache
 cache/
 
+# URL shortener database
+urlshort.db
+
 # IDE
 .vscode/
 .idea/

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Shortener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0e0e0e;
+      --surface: #161616;
+      --surface2: #1c1c1c;
+      --border: #2a2a2a;
+      --accent: #e8ff47;
+      --accent-dim: rgba(232,255,71,0.1);
+      --text: #e8e6e0;
+      --text-muted: #666;
+      --red: #ff5a5a;
+      --red-dim: rgba(255,90,90,0.1);
+      --green: #4fffb0;
+      --green-dim: rgba(79,255,176,0.1);
+      --blue: #47b4ff;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+    }
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+    .logo span { color: var(--text-muted); font-weight: 400; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: var(--text-muted); text-decoration: none; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--accent); }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      font-size: 0.8rem;
+    }
+    .alert-error   { background: var(--red-dim);   border: 1px solid var(--red);   color: var(--red); }
+    .alert-success { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-width: 320px;
+    }
+    label { font-size: 0.75rem; color: var(--text-muted); }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="url"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--text-muted); }
+
+    button, .btn {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      padding: 0.45rem 1rem;
+      transition: all 0.15s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0e0e0e;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { background: #f5ff8a; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border-color: var(--red);
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+    }
+    .btn-danger:hover { background: var(--red-dim); }
+
+    .create-form {
+      display: grid;
+      grid-template-columns: 2fr 1fr auto;
+      gap: 0.75rem;
+      align-items: end;
+    }
+    @media (max-width: 600px) {
+      .create-form { grid-template-columns: 1fr; }
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .form-group label { font-size: 0.72rem; color: var(--text-muted); }
+
+    .urls-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .urls-table th {
+      text-align: left;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .urls-table td {
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .urls-table tr:last-child td { border-bottom: none; }
+    .urls-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .short-code {
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .short-code a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .short-code a:hover {
+      text-decoration: underline;
+    }
+    .target-url {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+      display: block;
+    }
+    .target-url a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .target-url a:hover {
+      color: var(--blue);
+    }
+    .click-count {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+    .date {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+    }
+
+    .empty-state {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      margin-left: 0.5rem;
+      cursor: pointer;
+    }
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="{{ url_for('urlshort.admin') }}">URL<span>Short</span></a>
+    <nav class="nav-links">
+      <a href="{{ url_for('landing') }}">home</a>
+      {% if authed %}<a href="{{ url_for('urlshort.logout') }}">logout</a>{% endif %}
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+  {% if success %}
+  <div class="alert alert-success">{{ success }}</div>
+  {% endif %}
+
+  {% if not authed %}
+  <h1>URL Shortener Login</h1>
+  <div class="card">
+    <form class="login-form" method="post">
+      <input type="hidden" name="action" value="login">
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" autofocus placeholder="enter password">
+      </div>
+      <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+  </div>
+
+  {% else %}
+  <h1>URL Shortener</h1>
+
+  <div class="card">
+    <h2>Create Short URL</h2>
+    <form method="post">
+      <input type="hidden" name="action" value="create">
+      <div class="create-form">
+        <div class="form-group">
+          <label>Target URL</label>
+          <input type="url" name="url" placeholder="https://example.com/very/long/url" required>
+        </div>
+        <div class="form-group">
+          <label>Custom code (optional)</label>
+          <input type="text" name="custom_code" placeholder="my-link" pattern="[a-zA-Z0-9\-_]{2,32}">
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <button type="submit" class="btn btn-primary">Shorten</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Your Links ({{ urls | length }})</h2>
+    {% if urls %}
+    <table class="urls-table">
+      <thead>
+        <tr>
+          <th>Short URL</th>
+          <th>Target</th>
+          <th>Clicks</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for url in urls %}
+        <tr>
+          <td>
+            <span class="short-code">
+              <a href="/{{ url.code }}" target="_blank">/{{ url.code }}</a>
+            </span>
+            <button class="copy-btn" onclick="copyUrl('{{ url.code }}')" title="Copy full URL">copy</button>
+          </td>
+          <td>
+            <span class="target-url">
+              <a href="{{ url.url }}" target="_blank" rel="noopener">{{ url.url }}</a>
+            </span>
+          </td>
+          <td>
+            <span class="click-count">{{ url.clicks }}</span>
+          </td>
+          <td>
+            <span class="date">{{ url.created_at[:10] }}</span>
+          </td>
+          <td>
+            <button
+              type="button"
+              class="btn btn-danger"
+              onclick="deleteUrl('{{ url.code }}')"
+            >delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No short URLs yet. Create one above!</p>
+    {% endif %}
+  </div>
+
+  {% endif %}
+
+</div>
+
+<form id="deleteForm" method="post" style="display:none">
+  <input type="hidden" name="action" value="delete">
+  <input type="hidden" name="code" id="deleteCode">
+</form>
+
+<script>
+function deleteUrl(code) {
+  if (!confirm(`Delete /${code}?`)) return;
+  document.getElementById('deleteCode').value = code;
+  document.getElementById('deleteForm').submit();
+}
+
+function copyUrl(code) {
+  const fullUrl = window.location.origin + '/' + code;
+  navigator.clipboard.writeText(fullUrl).then(() => {
+    const btns = document.querySelectorAll('.copy-btn');
+    btns.forEach(b => {
+      if (b.innerText === 'copied!') b.innerText = 'copy';
+    });
+    event.target.innerText = 'copied!';
+    setTimeout(() => event.target.innerText = 'copy', 2000);
+  });
+}
+</script>
+
+</body>
+</html>
