@@ -81,12 +81,20 @@ def landing():
 
 
 @app.route("/<code>")
-def short_redirect(code: str):
-    """Redirect short URLs to their targets."""
+@app.route("/<code>/<path:subpath>")
+def short_redirect(code: str, subpath: str = ""):
+    """Redirect short URLs to their targets, with optional path passthrough."""
     url_data = get_url_by_code(code)
     if url_data:
         increment_clicks(code)
-        return redirect(url_data["url"])
+        target = url_data["url"]
+        # Append subpath if passthrough is enabled and subpath exists
+        if subpath and url_data.get("passthrough"):
+            # Ensure target ends with / before appending
+            if not target.endswith("/"):
+                target += "/"
+            target += subpath
+        return redirect(target)
     abort(404)
 
 

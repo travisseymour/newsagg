@@ -47,9 +47,15 @@ def get_db() -> sqlite3.Connection:
             code TEXT UNIQUE NOT NULL,
             url TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            clicks INTEGER DEFAULT 0
+            clicks INTEGER DEFAULT 0,
+            passthrough INTEGER DEFAULT 0
         )
     """)
+    # Migration: add passthrough column if it doesn't exist (for existing DBs)
+    try:
+        db.execute("ALTER TABLE urls ADD COLUMN passthrough INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     db.commit()
     return db
 
@@ -67,10 +73,10 @@ def code_exists(code: str) -> bool:
     return row is not None
 
 
-def create_short_url(url: str, custom_code: str | None = None) -> dict:
+def create_short_url(url: str, custom_code: str | None = None, passthrough: bool = False) -> dict:
     """
     Create a new short URL.
-    Returns {"code": ..., "url": ...} on success.
+    Returns {"code": ..., "url": ..., "passthrough": ...} on success.
     Returns {"error": ...} on failure.
     """
     # Generate or validate code
@@ -105,8 +111,8 @@ def create_short_url(url: str, custom_code: str | None = None) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     try:
         db.execute(
-            "INSERT INTO urls (code, url, created_at, clicks) VALUES (?, ?, ?, 0)",
-            (code, url, now),
+            "INSERT INTO urls (code, url, created_at, clicks, passthrough) VALUES (?, ?, ?, 0, ?)",
+            (code, url, now, 1 if passthrough else 0),
         )
         db.commit()
     except sqlite3.IntegrityError:
@@ -114,7 +120,7 @@ def create_short_url(url: str, custom_code: str | None = None) -> dict:
         return {"error": f"Code '{code}' is already taken"}
     db.close()
 
-    return {"code": code, "url": url}
+    return {"code": code, "url": url, "passthrough": passthrough}
 
 
 def get_url_by_code(code: str) -> dict | None:
@@ -200,11 +206,13 @@ def admin_post():
     elif action == "create":
         target_url = request.form.get("url", "").strip()
         custom_code = request.form.get("custom_code", "").strip() or None
-        result = create_short_url(target_url, custom_code)
+        passthrough = "passthrough" in request.form
+        result = create_short_url(target_url, custom_code, passthrough)
         if "error" in result:
             error = result["error"]
         else:
-            success = f"Created: /{result['code']} → {result['url']}"
+            pt_note = " (with path passthrough)" if result.get("passthrough") else ""
+            success = f"Created: /{result['code']} → {result['url']}{pt_note}"
 
     # Delete short URL
     elif action == "delete":
@@ -241,8 +249,9 @@ def api_shorten():
     data = request.get_json() or {}
     url = data.get("url", "")
     custom_code = data.get("code")
+    passthrough = data.get("passthrough", False)
 
-    result = create_short_url(url, custom_code)
+    result = create_short_url(url, custom_code, passthrough)
     if "error" in result:
         return jsonify(result), 400
     return jsonify(result)

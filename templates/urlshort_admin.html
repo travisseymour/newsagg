@@ -246,6 +246,36 @@
       border-color: var(--accent);
       color: var(--accent);
     }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+    .checkbox-group label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .badge {
+      font-size: 0.6rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      margin-left: 0.4rem;
+      vertical-align: middle;
+    }
+    .badge-passthrough {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -303,6 +333,10 @@
           <button type="submit" class="btn btn-primary">Shorten</button>
         </div>
       </div>
+      <div class="checkbox-group">
+        <input type="checkbox" name="passthrough" id="passthrough">
+        <label for="passthrough">Path passthrough (e.g., /code/extra → target/extra)</label>
+      </div>
     </form>
   </div>
 
@@ -326,6 +360,7 @@
             <span class="short-code">
               <a href="/{{ url.code }}" target="_blank">/{{ url.code }}</a>
             </span>
+            {% if url.passthrough %}<span class="badge badge-passthrough">path+</span>{% endif %}
             <button class="copy-btn" onclick="copyUrl('{{ url.code }}')" title="Copy full URL">copy</button>
           </td>
           <td>
