@@ -8,24 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0e0e0e;
-      --surface: #161616;
-      --border: #2a2a2a;
-      --border-light: #1e1e1e;
-      --accent: #e8ff47;
-      --accent-dim: rgba(232,255,71,0.12);
-      --text: #e8e6e0;
-      --text-muted: #666;
-      --text-dim: #999;
-      --link: #c8e6ff;
-      --link-hover: #ffffff;
-      --red: #ff5a5a;
-      --font-display: 'Syne', sans-serif;
-      --font-body: 'Newsreader', Georgia, serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
-
-    [data-theme="light"] {
       --bg: #f5f5f5;
       --surface: #ffffff;
       --border: #ddd;
@@ -37,22 +19,10 @@
       --text-dim: #666;
       --link: #0055aa;
       --link-hover: #003366;
-    }
-
-    [data-theme="light"] header {
-      background: rgba(255,255,255,0.95);
-    }
-
-    [data-theme="light"] .logo span {
-      color: var(--text-muted);
-    }
-
-    [data-theme="light"] .article-item:hover {
-      background: rgba(0,0,0,0.03);
-    }
-
-    [data-theme="light"] .article-link:visited .article-title {
-      color: var(--text-muted);
+      --red: #cc3333;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Newsreader', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -73,7 +43,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(14,14,14,0.95);
+      background: rgba(255,255,255,0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
       padding: 0 2rem;
@@ -195,7 +165,7 @@
     /* ── BANNER (search / empty state) ──────── */
     .banner {
       background: var(--accent-dim);
-      border-bottom: 1px solid rgba(232,255,71,0.2);
+      border-bottom: 1px solid rgba(0,102,204,0.2);
       padding: 0.6rem 2rem;
       font-family: var(--font-mono);
       font-size: 0.75rem;
@@ -346,7 +316,7 @@
       transition: background 0.1s;
     }
     .article-item:last-child { border-bottom: none; }
-    .article-item:hover { background: rgba(255,255,255,0.025); }
+    .article-item:hover { background: rgba(0,0,0,0.03); }
 
     .article-link {
       display: flex;
@@ -422,16 +392,12 @@
       left: 0;
       right: 0;
       z-index: 100;
-      background: rgba(14,14,14,0.95);
+      background: rgba(255,255,255,0.95);
       backdrop-filter: blur(12px);
       border-top: 1px solid var(--border);
       padding: 0.6rem 1rem;
       font-family: var(--font-mono);
       font-size: 0.7rem;
-    }
-
-    [data-theme="light"] .mobile-toolbar {
-      background: rgba(255,255,255,0.95);
     }
 
     .mobile-toolbar-inner {
@@ -503,9 +469,6 @@
       <button class="refresh-btn" id="refresh-btn" onclick="triggerScrape()" title="Refresh all feeds">
         <span class="spin" id="refresh-icon">↻</span>
         <span id="refresh-label">refresh</span>
-      </button>
-      <button class="refresh-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">
-        <span id="theme-icon">☀</span>
       </button>
       <a class="admin-link" href="{{ url_for('newsagg.admin') }}">admin</a>
     </div>
@@ -581,9 +544,6 @@
       <button class="refresh-btn" id="mobile-refresh-btn" onclick="triggerScrape()" title="Refresh all feeds">
         <span class="spin" id="mobile-refresh-icon">↻</span>
       </button>
-      <button class="refresh-btn" id="mobile-theme-btn" onclick="toggleTheme()" title="Toggle theme">
-        <span id="mobile-theme-icon">☀</span>
-      </button>
       <a class="refresh-btn" href="{{ url_for('newsagg.admin') }}" style="text-decoration: none;">admin</a>
     </div>
   </div>
@@ -607,27 +567,6 @@
       btn.textContent = '+ ' + (total - 10) + ' more stories';
     }
   }
-
-  // ── Theme toggle ──
-  const themeIcon = document.getElementById('theme-icon');
-  const mobileThemeIcon = document.getElementById('mobile-theme-icon');
-
-  function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-    const icon = theme === 'light' ? '☾' : '☀';
-    if (themeIcon) themeIcon.textContent = icon;
-    if (mobileThemeIcon) mobileThemeIcon.textContent = icon;
-  }
-
-  function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme');
-    setTheme(current === 'light' ? 'dark' : 'light');
-  }
-
-  // Load saved theme or default to dark
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  setTheme(savedTheme);
 
   // ── Refresh button ──
   const btn = document.getElementById('refresh-btn');
