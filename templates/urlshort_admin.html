@@ -276,7 +276,48 @@
       border: 1px solid var(--accent);
       color: var(--accent);
     }
+
+    /* QR Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      max-width: 320px;
+    }
+    .modal h3 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .modal canvas {
+      background: white;
+      border-radius: 4px;
+      padding: 8px;
+    }
+    .modal-url {
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-top: 0.75rem;
+      word-break: break-all;
+    }
+    .modal-close {
+      margin-top: 1rem;
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 </head>
 <body>
 
@@ -362,6 +403,7 @@
             </span>
             {% if url.passthrough %}<span class="badge badge-passthrough">path+</span>{% endif %}
             <button class="copy-btn" onclick="copyUrl('{{ url.code }}')" title="Copy full URL">copy</button>
+            <button class="copy-btn" onclick="showQR('{{ url.code }}')" title="Show QR code">qr</button>
           </td>
           <td>
             <span class="target-url">
@@ -399,6 +441,15 @@
   <input type="hidden" name="code" id="deleteCode">
 </form>
 
+<div class="modal-overlay" id="qrModal" onclick="closeQR(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>QR Code</h3>
+    <canvas id="qrCanvas"></canvas>
+    <div class="modal-url" id="qrUrl"></div>
+    <button class="btn btn-ghost modal-close" onclick="closeQR()">Close</button>
+  </div>
+</div>
+
 <script>
 function deleteUrl(code) {
   if (!confirm(`Delete /${code}?`)) return;
@@ -416,6 +467,24 @@ function copyUrl(code) {
     event.target.innerText = 'copied!';
     setTimeout(() => event.target.innerText = 'copy', 2000);
   });
+}
+
+function showQR(code) {
+  const fullUrl = window.location.origin + '/' + code;
+  document.getElementById('qrUrl').textContent = fullUrl;
+  new QRious({
+    element: document.getElementById('qrCanvas'),
+    value: fullUrl,
+    size: 200,
+    level: 'M'
+  });
+  document.getElementById('qrModal').classList.add('active');
+}
+
+function closeQR(event) {
+  if (!event || event.target === document.getElementById('qrModal')) {
+    document.getElementById('qrModal').classList.remove('active');
+  }
 }
 </script>
 
