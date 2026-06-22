@@ -182,13 +182,40 @@ def fetch_all():
     sources = yaml.safe_load(SOURCES_FILE.read_text())["sources"]
 
     enabled = [s for s in sources if s.get("enabled", True)]
-    log.info("Fetching %d enabled sources...", len(enabled))
 
+    # Sort sources: non-Reddit first, then Reddit sources at the end
+    # This minimizes total scrape time by doing fast sources first
+    def is_reddit(source):
+        return "reddit.com" in source.get("url", "").lower()
+
+    enabled = sorted(enabled, key=lambda s: (is_reddit(s), s["name"]))
+    log.info("Fetching %d enabled sources (Reddit sources at end)...", len(enabled))
+
+    last_domain = None
     for source in enabled:
         data = fetch_source(source)
         fname = CACHE_DIR / f"{safe_filename(source['name'])}.json"
         fname.write_text(json.dumps(data, indent=2, ensure_ascii=False))
-        time.sleep(0.5)  # be polite
+
+        # Smart rate limiting based on domain
+        current_domain = None
+        try:
+            from urllib.parse import urlparse
+            current_domain = urlparse(source["url"]).netloc
+        except Exception:
+            pass
+
+        # Reddit rate limits aggressively - use longer delay for reddit.com
+        if current_domain and "reddit.com" in current_domain:
+            if last_domain == current_domain:
+                log.info("  Waiting 3s (same domain: %s)", current_domain)
+                time.sleep(3.0)
+            else:
+                time.sleep(1.0)
+        else:
+            time.sleep(0.5)  # default delay
+
+        last_domain = current_domain
 
     # Write a manifest so the Flask app knows what's available
     manifest = {
