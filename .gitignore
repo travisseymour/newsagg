@@ -14,6 +14,9 @@ cache/
 # URL shortener database
 urlshort.db
 
+# User configuration (each environment has its own)
+sources.yaml
+
 # IDE
 .vscode/
 .idea/

@@ -276,6 +276,9 @@
 
 <div class="container">
 
+  {% if dropbox_warning %}
+  <div class="alert alert-error">⚠️ {{ dropbox_warning }}</div>
+  {% endif %}
   {% if error %}
   <div class="alert alert-error">{{ error }}</div>
   {% endif %}

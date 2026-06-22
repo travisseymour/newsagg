@@ -15,6 +15,12 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 BASE_DIR = Path(__file__).parent
 CACHE_DIR = BASE_DIR / "cache"
 SOURCES_FILE = BASE_DIR / "sources.yaml"
+SOURCES_EXAMPLE = BASE_DIR / "sources.yaml.example"
+
+# Initialize sources.yaml from example if it doesn't exist
+if not SOURCES_FILE.exists() and SOURCES_EXAMPLE.exists():
+    import shutil
+    shutil.copy(SOURCES_EXAMPLE, SOURCES_FILE)
 
 # Create the blueprint
 newsagg_bp = Blueprint(
@@ -211,11 +217,19 @@ def admin():
         # Toggle sources
         elif action == "save_toggles":
             sources = load_sources_config()
+            changes = []
             for s in sources:
                 key = f"enabled_{safe_filename(s['name'])}"
-                s["enabled"] = key in request.form
+                old_enabled = s.get("enabled", True)
+                new_enabled = key in request.form
+                s["enabled"] = new_enabled
+                if old_enabled != new_enabled:
+                    changes.append(f"{s['name']}: {old_enabled} → {new_enabled}")
             save_sources_config(sources)
-            success = "Sources updated. Re-run the scraper to refresh cache."
+            if changes:
+                success = f"Sources updated: {', '.join(changes)}. Re-run the scraper to refresh cache."
+            else:
+                success = "No changes detected. Sources remain the same."
 
         # Add new source
         elif action == "add_source":
@@ -256,6 +270,15 @@ def admin():
                 error = "Cache directory not found."
 
     sources_config = load_sources_config()
+
+    # Check if running on Railway (deployed environment)
+    is_deployed = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+
+    # Check if sources.yaml is in Dropbox
+    dropbox_warning = None
+    if "Dropbox" in str(SOURCES_FILE) and is_deployed:
+        dropbox_warning = "Warning: This deployed instance is using a Dropbox-synced sources.yaml file. Changes may conflict with local development."
+
     return render_template(
         "admin.html",
         sources=sources_config,
@@ -263,6 +286,7 @@ def admin():
         error=error,
         success=success,
         last_updated=last_updated(),
+        dropbox_warning=dropbox_warning,
     )
 
 
