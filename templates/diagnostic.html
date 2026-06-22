@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic — NewsAgg</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #4fc3f7; margin-bottom: 1rem; }
+    h2 { color: #81c784; margin-top: 2rem; margin-bottom: 1rem; }
+    .summary {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    .summary p { margin: 0.25rem 0; }
+    .key { color: #ffb74d; }
+    .value { color: #fff; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid #444;
+    }
+    th { background: #333; color: #4fc3f7; font-weight: bold; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background: #333; }
+    .status-ok { color: #81c784; }
+    .status-warning { color: #ffb74d; }
+    .status-error { color: #e57373; }
+    .error-message {
+      background: #3a2020;
+      border-left: 3px solid #e57373;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      font-size: 0.9em;
+    }
+    code {
+      background: #333;
+      padding: 0.2rem 0.4rem;
+      border-radius: 2px;
+      color: #4fc3f7;
+    }
+    a { color: #4fc3f7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .back-link {
+      display: inline-block;
+      margin-top: 2rem;
+      padding: 0.5rem 1rem;
+      background: #333;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #4fc3f7;
+      text-decoration: none;
+    }
+    .back-link:hover { background: #444; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 NewsAgg Diagnostic</h1>
+
+    <div class="summary">
+      <p><span class="key">Total sources in config:</span> <span class="value">{{ total_sources }}</span></p>
+      <p><span class="key">Enabled sources:</span> <span class="value">{{ enabled_sources }}</span></p>
+      <p><span class="key">Last updated:</span> <span class="value">{{ manifest.get('updated_at', 'Never') }}</span></p>
+      <p><span class="key">Sources in manifest:</span> <span class="value">{{ manifest.get('sources', []) | length }}</span></p>
+    </div>
+
+    <h2>Sources Status</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Source Name</th>
+          <th>Cache File</th>
+          <th>Exists</th>
+          <th>Loaded</th>
+          <th>Articles</th>
+          <th>Will Display?</th>
+          <th>Fetched At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source in sources_status %}
+        <tr>
+          <td><strong>{{ source.name }}</strong></td>
+          <td><code>{{ source.cache_filename }}</code></td>
+          <td>
+            {% if source.cache_exists %}
+              <span class="status-ok">✓</span>
+            {% else %}
+              <span class="status-error">✗</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if source.cache_loaded %}
+              <span class="status-ok">✓</span>
+            {% else %}
+              <span class="status-error">✗</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if source.article_count > 0 %}
+              <span class="status-ok">{{ source.article_count }}</span>
+            {% else %}
+              <span class="status-warning">0</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if source.will_display %}
+              <span class="status-ok">YES</span>
+            {% else %}
+              <span class="status-error">NO</span>
+            {% endif %}
+          </td>
+          <td>{{ source.fetched_at or '—' }}</td>
+        </tr>
+        {% if source.error %}
+        <tr>
+          <td colspan="7">
+            <div class="error-message">
+              <strong>Error:</strong> {{ source.error }}
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <a href="{{ url_for('newsagg.index') }}" class="back-link">← Back to NewsAgg</a>
+    &nbsp;
+    <a href="{{ url_for('newsagg.diagnostic') }}?format=json" class="back-link">View as JSON</a>
+  </div>
+</body>
+</html>

@@ -121,7 +121,8 @@ def index():
     feeds = []
     for source in enabled:
         cache = load_cache(source["name"])
-        if cache and cache.get("articles"):
+        # Show feed if it has articles, OR if it has an error (so users know it failed)
+        if cache and (cache.get("articles") or cache.get("error")):
             feeds.append(cache)
 
     # Auto-trigger scrape if cache is empty or stale (>1 hour) and no scrape is running
@@ -161,7 +162,7 @@ def search():
     results = []
     for source in enabled:
         cache = load_cache(source["name"])
-        if not cache:
+        if not cache or not cache.get("articles"):
             continue
         matches = [
             a
@@ -291,33 +292,71 @@ def diagnostic():
     sources_config = load_sources_config()
     enabled = [s for s in sources_config if s.get("enabled", True)]
 
-    diagnostics = {
-        "total_sources": len(sources_config),
-        "enabled_sources": len(enabled),
-        "manifest": load_manifest(),
-        "sources_status": []
-    }
+    # Check if user wants JSON format
+    if request.args.get("format") == "json":
+        diagnostics = {
+            "total_sources": len(sources_config),
+            "enabled_sources": len(enabled),
+            "manifest": load_manifest(),
+            "sources_status": []
+        }
+
+        for source in enabled:
+            cache = load_cache(source["name"])
+            cache_filename = f"{safe_filename(source['name'])}.json"
+            cache_path = CACHE_DIR / cache_filename
+
+            articles = cache.get("articles", []) if cache else []
+            status = {
+                "name": source["name"],
+                "url": source["url"],
+                "category": source.get("category", "tech"),
+                "cache_filename": cache_filename,
+                "cache_exists": cache_path.exists(),
+                "cache_loaded": cache is not None,
+                "has_articles": bool(articles),
+                "article_count": len(articles),
+                "articles_is_empty_list": articles == [] if cache else None,
+                "will_display": bool(cache and cache.get("articles")),
+                "error": cache.get("error") if cache else None,
+                "fetched_at": cache.get("fetched_at") if cache else None
+            }
+            diagnostics["sources_status"].append(status)
+
+        return jsonify(diagnostics)
+
+    # HTML format (default)
+    manifest = load_manifest()
+    sources_status = []
 
     for source in enabled:
         cache = load_cache(source["name"])
         cache_filename = f"{safe_filename(source['name'])}.json"
         cache_path = CACHE_DIR / cache_filename
 
-        status = {
+        articles = cache.get("articles", []) if cache else []
+        will_display = bool(cache and cache.get("articles"))
+
+        sources_status.append({
             "name": source["name"],
             "url": source["url"],
             "category": source.get("category", "tech"),
             "cache_filename": cache_filename,
             "cache_exists": cache_path.exists(),
             "cache_loaded": cache is not None,
-            "has_articles": bool(cache and cache.get("articles")),
-            "article_count": len(cache.get("articles", [])) if cache else 0,
+            "article_count": len(articles),
+            "will_display": will_display,
             "error": cache.get("error") if cache else None,
-            "fetched_at": cache.get("fetched_at") if cache else None
-        }
-        diagnostics["sources_status"].append(status)
+            "fetched_at": cache.get("fetched_at") if cache else None,
+        })
 
-    return jsonify(diagnostics)
+    return render_template(
+        "diagnostic.html",
+        total_sources=len(sources_config),
+        enabled_sources=len(enabled),
+        manifest=manifest,
+        sources_status=sources_status,
+    )
 
 
 @newsagg_bp.route("/api/scrape", methods=["POST"])

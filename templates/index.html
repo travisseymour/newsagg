@@ -494,6 +494,7 @@
         <span class="feed-name">{{ feed.name }}</span>
         <span class="feed-count">{{ feed.articles | length }}</span>
       </div>
+      {% if feed.articles %}
       <ul class="feed-articles" data-total="{{ feed.articles | length }}">
         {% for article in feed.articles %}
         <li class="article-item">
@@ -504,7 +505,17 @@
         </li>
         {% endfor %}
       </ul>
-      {% if feed.articles | length > 10 %}
+      {% elif feed.error %}
+      <div style="padding: 1rem; color: #cc3333; font-family: var(--font-mono); font-size: 0.75rem; background: rgba(204,51,51,0.1);">
+        <strong>Error fetching feed:</strong><br>
+        {{ feed.error }}
+      </div>
+      {% else %}
+      <div style="padding: 1rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; text-align: center;">
+        No articles available
+      </div>
+      {% endif %}
+      {% if feed.articles and feed.articles | length > 10 %}
       <button class="load-more-btn" onclick="toggleLoadMore(this)">
         + {{ feed.articles | length - 10 }} more stories
       </button>
