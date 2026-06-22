@@ -138,7 +138,10 @@ def fetch_source(source: dict) -> dict:
 
         # Detect potential issues
         error_msg = None
-        if len(feed.entries) == 0 and status == 200:
+        if status != 200 and status != "unknown":
+            error_msg = f"HTTP {status} - feed may be blocked or rate limited"
+            log.warning("  ⚠  %s", error_msg)
+        elif len(feed.entries) == 0 and status == 200:
             error_msg = "Feed returned 0 entries (possible rate limit or access restriction)"
             log.warning("  ⚠  %s", error_msg)
         elif len(articles) == 0 and len(feed.entries) > 0:
@@ -152,6 +155,8 @@ def fetch_source(source: dict) -> dict:
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "articles": articles,
             "error": error_msg,
+            "http_status": status,
+            "total_entries": len(feed.entries),
         }
         log.info("  ✓ %d articles", len(articles))
         return result

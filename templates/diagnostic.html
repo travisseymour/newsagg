@@ -90,8 +90,8 @@
         <tr>
           <th>Source Name</th>
           <th>Cache File</th>
-          <th>Exists</th>
-          <th>Loaded</th>
+          <th>HTTP</th>
+          <th>Entries</th>
           <th>Articles</th>
           <th>Will Display?</th>
           <th>Fetched At</th>
@@ -103,17 +103,23 @@
           <td><strong>{{ source.name }}</strong></td>
           <td><code>{{ source.cache_filename }}</code></td>
           <td>
-            {% if source.cache_exists %}
-              <span class="status-ok">✓</span>
+            {% if source.http_status == 200 %}
+              <span class="status-ok">{{ source.http_status }}</span>
+            {% elif source.http_status %}
+              <span class="status-error">{{ source.http_status }}</span>
             {% else %}
-              <span class="status-error">✗</span>
+              <span class="status-warning">—</span>
             {% endif %}
           </td>
           <td>
-            {% if source.cache_loaded %}
-              <span class="status-ok">✓</span>
+            {% if source.total_entries is not none %}
+              {% if source.total_entries > 0 %}
+                <span class="status-ok">{{ source.total_entries }}</span>
+              {% else %}
+                <span class="status-warning">0</span>
+              {% endif %}
             {% else %}
-              <span class="status-error">✗</span>
+              <span class="status-warning">—</span>
             {% endif %}
           </td>
           <td>
@@ -130,7 +136,7 @@
               <span class="status-error">NO</span>
             {% endif %}
           </td>
-          <td>{{ source.fetched_at or '—' }}</td>
+          <td style="font-size: 0.7em;">{{ source.fetched_at or '—' }}</td>
         </tr>
         {% if source.error %}
         <tr>

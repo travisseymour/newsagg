@@ -343,7 +343,9 @@ def diagnostic():
                 "articles_is_empty_list": articles == [] if cache else None,
                 "will_display": bool(cache and (cache.get("articles") or cache.get("error"))),
                 "error": cache.get("error") if cache else None,
-                "fetched_at": cache.get("fetched_at") if cache else None
+                "fetched_at": cache.get("fetched_at") if cache else None,
+                "http_status": cache.get("http_status") if cache else None,
+                "total_entries": cache.get("total_entries") if cache else None,
             }
             diagnostics["sources_status"].append(status)
 
@@ -373,6 +375,8 @@ def diagnostic():
             "will_display": will_display,
             "error": cache.get("error") if cache else None,
             "fetched_at": cache.get("fetched_at") if cache else None,
+            "http_status": cache.get("http_status") if cache else None,
+            "total_entries": cache.get("total_entries") if cache else None,
         })
 
     return render_template(
