@@ -243,6 +243,17 @@ def admin():
                 cf.unlink()
             success = f"Deleted '{name}'."
 
+        # Clear all cache
+        elif action == "clear_cache":
+            if CACHE_DIR.exists():
+                count = 0
+                for cache_file in CACHE_DIR.glob("*.json"):
+                    cache_file.unlink()
+                    count += 1
+                success = f"Cleared {count} cache files. Feeds will auto-refresh on next page load."
+            else:
+                error = "Cache directory not found."
+
     sources_config = load_sources_config()
     return render_template(
         "admin.html",
@@ -272,6 +283,41 @@ def api_feeds():
         if cache:
             out.append(cache)
     return jsonify({"updated_at": load_manifest().get("updated_at"), "feeds": out})
+
+
+@newsagg_bp.route("/diagnostic")
+def diagnostic():
+    """Diagnostic endpoint to debug feed issues."""
+    sources_config = load_sources_config()
+    enabled = [s for s in sources_config if s.get("enabled", True)]
+
+    diagnostics = {
+        "total_sources": len(sources_config),
+        "enabled_sources": len(enabled),
+        "manifest": load_manifest(),
+        "sources_status": []
+    }
+
+    for source in enabled:
+        cache = load_cache(source["name"])
+        cache_filename = f"{safe_filename(source['name'])}.json"
+        cache_path = CACHE_DIR / cache_filename
+
+        status = {
+            "name": source["name"],
+            "url": source["url"],
+            "category": source.get("category", "tech"),
+            "cache_filename": cache_filename,
+            "cache_exists": cache_path.exists(),
+            "cache_loaded": cache is not None,
+            "has_articles": bool(cache and cache.get("articles")),
+            "article_count": len(cache.get("articles", [])) if cache else 0,
+            "error": cache.get("error") if cache else None,
+            "fetched_at": cache.get("fetched_at") if cache else None
+        }
+        diagnostics["sources_status"].append(status)
+
+    return jsonify(diagnostics)
 
 
 @newsagg_bp.route("/api/scrape", methods=["POST"])

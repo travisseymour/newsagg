@@ -391,6 +391,18 @@
     </form>
   </div>
 
+  <!-- ── CACHE MANAGEMENT ── -->
+  <div class="card">
+    <h2>Cache Management</h2>
+    <p style="color: #666; margin-bottom: 1rem;">
+      Clear all cached feed data to force a fresh fetch from all sources.
+    </p>
+    <form method="post" onsubmit="return confirm('Clear all cached feeds? This will trigger a fresh scrape on the next page load.');">
+      <input type="hidden" name="action" value="clear_cache">
+      <button type="submit" class="btn btn-danger">Clear All Cache</button>
+    </form>
+  </div>
+
   {% endif %}
 
 </div>
