@@ -101,14 +101,24 @@ def fetch_source(source: dict) -> dict:
     log.info("Fetching %s ...", name)
     try:
         feed = feedparser.parse(url, agent="NewsAgg/1.0 (self-hosted aggregator)")
+
+        # Log feed status for debugging
+        status = getattr(feed, "status", "unknown")
+        log.info("  HTTP status: %s", status)
+        log.info("  Total entries: %d", len(feed.entries))
+
         if feed.bozo and not feed.entries:
             log.warning("  ⚠  bozo feed for %s: %s", name, feed.bozo_exception)
+        elif feed.bozo:
+            log.warning("  ⚠  bozo flag set but has entries: %s", feed.bozo_exception)
 
         articles = []
+        skipped = 0
         for entry in feed.entries[:ARTICLES_PER_SOURCE]:
             title = getattr(entry, "title", "").strip()
             link = getattr(entry, "link", "").strip()
             if not title or not link:
+                skipped += 1
                 continue
             pub = parse_date(entry)
             articles.append(
@@ -120,8 +130,20 @@ def fetch_source(source: dict) -> dict:
                 }
             )
 
+        if skipped > 0:
+            log.info("  Skipped %d entries (missing title or link)", skipped)
+
         # Sort articles by published date (newest first)
         articles.sort(key=lambda a: a["published"] or "", reverse=True)
+
+        # Detect potential issues
+        error_msg = None
+        if len(feed.entries) == 0 and status == 200:
+            error_msg = "Feed returned 0 entries (possible rate limit or access restriction)"
+            log.warning("  ⚠  %s", error_msg)
+        elif len(articles) == 0 and len(feed.entries) > 0:
+            error_msg = f"All {len(feed.entries)} entries skipped (missing title or link)"
+            log.warning("  ⚠  %s", error_msg)
 
         result = {
             "name": name,
@@ -129,7 +151,7 @@ def fetch_source(source: dict) -> dict:
             "category": source.get("category", "tech"),
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "articles": articles,
-            "error": None,
+            "error": error_msg,
         }
         log.info("  ✓ %d articles", len(articles))
         return result

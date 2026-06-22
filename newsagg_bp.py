@@ -317,7 +317,7 @@ def diagnostic():
                 "has_articles": bool(articles),
                 "article_count": len(articles),
                 "articles_is_empty_list": articles == [] if cache else None,
-                "will_display": bool(cache and cache.get("articles")),
+                "will_display": bool(cache and (cache.get("articles") or cache.get("error"))),
                 "error": cache.get("error") if cache else None,
                 "fetched_at": cache.get("fetched_at") if cache else None
             }
@@ -335,7 +335,8 @@ def diagnostic():
         cache_path = CACHE_DIR / cache_filename
 
         articles = cache.get("articles", []) if cache else []
-        will_display = bool(cache and cache.get("articles"))
+        # Use the same logic as the index page
+        will_display = bool(cache and (cache.get("articles") or cache.get("error")))
 
         sources_status.append({
             "name": source["name"],
