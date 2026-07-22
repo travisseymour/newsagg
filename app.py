@@ -15,6 +15,7 @@ from pathlib import Path
 from flask import Flask, abort, redirect, render_template
 
 from newsagg_bp import newsagg_bp
+from reddagg_bp import reddagg_bp
 from urlshort_bp import urlshort_bp, get_url_by_code, increment_clicks
 
 BASE_DIR = Path(__file__).parent
@@ -23,6 +24,7 @@ app = Flask(__name__)
 
 # Register blueprints
 app.register_blueprint(newsagg_bp, url_prefix="/newsagg")
+app.register_blueprint(reddagg_bp, url_prefix="/reddagg")
 app.register_blueprint(urlshort_bp, url_prefix="/url")
 
 

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReddAgg — Reddit Front Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --border: #ddd;
+      --border-light: #e8e8e8;
+      --accent: #ff4500;
+      --accent-dim: rgba(255,69,0,0.1);
+      --text: #1a1a1a;
+      --text-muted: #888;
+      --text-dim: #666;
+      --link: #0055aa;
+      --link-hover: #003366;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Newsreader', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ───────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      height: 52px;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .logo span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .header-meta {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .header-meta a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .header-meta a:hover { color: var(--accent); }
+
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── MAIN LAYOUT ─────────────────────────── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+    }
+
+    .posts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── POST ROW ──────────────────────────── */
+    .post-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border-light);
+      transition: background 0.1s;
+    }
+
+    .post-row:hover {
+      background: rgba(0,0,0,0.02);
+    }
+
+    .post-thumbnail {
+      width: 70px;
+      height: 52px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: var(--border-light);
+      flex-shrink: 0;
+    }
+
+    .post-thumbnail-placeholder {
+      width: 70px;
+      height: 52px;
+      background: linear-gradient(135deg, #ff4500 0%, #ff6a33 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .post-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .post-title {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.35;
+      margin-bottom: 0.25rem;
+    }
+
+    .post-title a {
+      color: var(--link);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .post-title a:hover { color: var(--link-hover); }
+    .post-title a:visited { color: var(--text-muted); }
+
+    .post-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .post-meta .subreddit {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .post-meta .subreddit:hover { text-decoration: underline; }
+
+    .post-meta .age {
+      color: var(--text-dim);
+    }
+
+    .post-meta a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .post-meta a:hover { text-decoration: underline; }
+
+    .post-meta .separator {
+      color: var(--border);
+    }
+
+    /* ── ERROR STATE ─────────────────────────── */
+    .error-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+    .error-state h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      color: #cc3333;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── FOOTER ──────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-light);
+      padding: 1.5rem 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    /* ── RESPONSIVE ────────────────────────── */
+    @media (max-width: 640px) {
+      .container { padding: 0.5rem 1rem; }
+      .post-thumbnail, .post-thumbnail-placeholder {
+        width: 60px;
+        height: 45px;
+      }
+      .post-title { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="{{ url_for('reddagg.index') }}">Redd<span>Agg</span></a>
+    <div class="header-meta">
+      <span>{{ posts | length }} posts</span>
+      <a class="refresh-btn" href="{{ url_for('reddagg.index') }}" title="Refresh">
+        <span>↻</span>
+        <span>refresh</span>
+      </a>
+      <a href="/">home</a>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  {% if error %}
+  <div class="error-state">
+    <h2>Error fetching Reddit</h2>
+    <p>{{ error }}</p>
+  </div>
+  {% elif posts %}
+  <div class="posts-list">
+    {% for post in posts %}
+    <div class="post-row">
+      {% if post.thumbnail %}
+      <a href="{{ post.url }}" target="_blank" rel="noopener noreferrer">
+        <img class="post-thumbnail" src="{{ post.thumbnail }}" alt="" loading="lazy" onerror="this.outerHTML='<div class=post-thumbnail-placeholder>r/</div>'">
+      </a>
+      {% else %}
+      <a href="{{ post.url }}" target="_blank" rel="noopener noreferrer">
+        <div class="post-thumbnail-placeholder">r/</div>
+      </a>
+      {% endif %}
+      <div class="post-content">
+        <div class="post-title">
+          <a href="{{ post.url }}" target="_blank" rel="noopener noreferrer">{{ post.title }}</a>
+        </div>
+        <div class="post-meta">
+          <a class="subreddit" href="https://www.reddit.com/{{ post.subreddit }}" target="_blank" rel="noopener noreferrer">{{ post.subreddit }}</a>
+          <span class="separator">·</span>
+          {% if post.age %}<span class="age">{{ post.age }}</span><span class="separator">·</span>{% endif %}
+          <a href="{{ post.permalink }}" target="_blank" rel="noopener noreferrer">comments</a>
+          {% if post.author %}<span class="separator">·</span><span>u/{{ post.author }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="error-state">
+    <h2>No posts available</h2>
+    <p>Try refreshing the page.</p>
+  </div>
+  {% endif %}
+</div>
+
+<footer>
+  <a href="{{ url_for('reddagg.index') }}">ReddAgg</a> &nbsp;·&nbsp;
+  <a href="/">home</a> &nbsp;·&nbsp;
+  <span title="Git commit hash">v{{ app_version }}</span>
+</footer>
+
+</body>
+</html>
