@@ -65,10 +65,21 @@ def is_direct_media(url: str) -> bool:
     """Check if URL points directly to media (image, video, gif)."""
     if not url:
         return False
-    # Common image/media extensions
-    media_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.gifv')
-    # Common image hosting domains
-    media_domains = ('i.redd.it', 'i.imgur.com', 'imgur.com/a/', 'gfycat.com')
+    # Common image/video extensions
+    media_extensions = (
+        '.jpg', '.jpeg', '.png', '.gif', '.webp',  # images
+        '.mp4', '.gifv', '.webm', '.mov',  # videos
+    )
+    # Common media hosting domains (images and videos)
+    media_domains = (
+        'i.redd.it', 'v.redd.it',  # Reddit media
+        'i.imgur.com', 'imgur.com',  # Imgur
+        'gfycat.com', 'redgifs.com',  # GIF/video hosts
+        'streamable.com',  # Video host
+        'youtube.com', 'youtu.be',  # YouTube
+        'twitch.tv', 'clips.twitch.tv',  # Twitch
+        'vimeo.com',  # Vimeo
+    )
     url_lower = url.lower()
     return any(url_lower.endswith(ext) for ext in media_extensions) or \
            any(domain in url_lower for domain in media_domains)
