@@ -43,6 +43,37 @@ def extract_thumbnail(content: str) -> str | None:
     return None
 
 
+def extract_external_link(content: str) -> str | None:
+    """Extract the external link from RSS entry content HTML.
+
+    Reddit RSS includes a [link] anchor that points to the actual content
+    (image, external URL, etc.) rather than the comments page.
+    """
+    if not content:
+        return None
+    # Look for the [link] anchor which contains the external URL
+    match = re.search(r'<a\s+href=["\']([^"\']+)["\'][^>]*>\s*\[link\]\s*</a>', content)
+    if match:
+        url = unescape(match.group(1))
+        # Don't return reddit.com links (self-posts link back to themselves)
+        if "reddit.com/r/" not in url:
+            return url
+    return None
+
+
+def is_direct_media(url: str) -> bool:
+    """Check if URL points directly to media (image, video, gif)."""
+    if not url:
+        return False
+    # Common image/media extensions
+    media_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.gifv')
+    # Common image hosting domains
+    media_domains = ('i.redd.it', 'i.imgur.com', 'imgur.com/a/', 'gfycat.com')
+    url_lower = url.lower()
+    return any(url_lower.endswith(ext) for ext in media_extensions) or \
+           any(domain in url_lower for domain in media_domains)
+
+
 def extract_subreddit(link: str) -> str:
     """Extract subreddit from Reddit link."""
     match = re.search(r"reddit\.com/r/([^/]+)", link)
@@ -110,16 +141,30 @@ def fetch_reddit_posts(limit: int = 50) -> tuple[list[dict], str | None]:
                 except Exception:
                     pass
 
+            # Check for external link (image or URL post)
+            external_link = extract_external_link(content)
+            thumbnail = extract_thumbnail(content)
+
+            # Use external link directly if it's media or an external URL
+            if external_link:
+                primary_url = external_link
+                # Extract domain from external link
+                domain_match = re.search(r'https?://(?:www\.)?([^/]+)', external_link)
+                domain = domain_match.group(1) if domain_match else "external"
+            else:
+                primary_url = link
+                domain = "reddit.com"
+
             posts.append(
                 {
                     "title": title,
-                    "url": link,
+                    "url": primary_url,
                     "permalink": link,
                     "subreddit": extract_subreddit(link),
-                    "thumbnail": extract_thumbnail(content),
+                    "thumbnail": thumbnail,
                     "author": getattr(entry, "author", "").replace("/u/", ""),
                     "age": age_label(pub_date),
-                    "domain": "reddit.com",
+                    "domain": domain,
                 }
             )
 
