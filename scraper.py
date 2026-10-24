@@ -52,6 +52,18 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+def atomic_write_text(path: Path, text: str):
+    """Write via a temp file and rename, so readers never see a half-written file."""
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def is_http_url(url: str) -> bool:
+    """Only http(s) links are safe to render (no javascript:, data:, ...)."""
+    return url.lower().startswith(("http://", "https://"))
+
+
 def parse_date(entry) -> str:
     """Return an ISO-8601 string from whatever date fields feedparser gives us."""
     for attr in ("published_parsed", "updated_parsed", "created_parsed"):
@@ -119,7 +131,7 @@ def fetch_source(source: dict) -> dict:
         for entry in feed.entries[:ARTICLES_PER_SOURCE]:
             title = getattr(entry, "title", "").strip()
             link = getattr(entry, "link", "").strip()
-            if not title or not link:
+            if not title or not is_http_url(link):
                 skipped += 1
                 continue
             pub = parse_date(entry)
@@ -133,7 +145,7 @@ def fetch_source(source: dict) -> dict:
             )
 
         if skipped > 0:
-            log.info("  Skipped %d entries (missing title or link)", skipped)
+            log.info("  Skipped %d entries (missing title or http(s) link)", skipped)
 
         # Sort articles by published date (newest first)
         articles.sort(key=lambda a: a["published"] or "", reverse=True)
@@ -197,7 +209,7 @@ def fetch_all():
     for source in enabled:
         data = fetch_source(source)
         fname = CACHE_DIR / f"{safe_filename(source['name'])}.json"
-        fname.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+        atomic_write_text(fname, json.dumps(data, indent=2, ensure_ascii=False))
 
         # Smart rate limiting based on domain
         current_domain = None
@@ -224,7 +236,7 @@ def fetch_all():
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "sources": [safe_filename(s["name"]) for s in enabled],
     }
-    (CACHE_DIR / "_manifest.json").write_text(json.dumps(manifest, indent=2))
+    atomic_write_text(CACHE_DIR / "_manifest.json", json.dumps(manifest, indent=2))
     log.info("Done. Manifest written.")
 
 

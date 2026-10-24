@@ -9,6 +9,7 @@ This app serves:
 """
 
 import os
+import secrets
 import subprocess
 from pathlib import Path
 
@@ -21,6 +22,16 @@ from urlshort_bp import urlshort_bp, get_url_by_code, increment_clicks
 BASE_DIR = Path(__file__).parent
 
 app = Flask(__name__)
+
+# Signs the admin session cookie. Without NEWSAGG_SECRET_KEY a random key is
+# used, which logs admins out whenever the app restarts.
+app.secret_key = os.environ.get("NEWSAGG_SECRET_KEY") or secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    # Set NEWSAGG_SECURE_COOKIES=1 when served over HTTPS
+    SESSION_COOKIE_SECURE=os.environ.get("NEWSAGG_SECURE_COOKIES") == "1",
+)
 
 # Register blueprints
 app.register_blueprint(newsagg_bp, url_prefix="/newsagg")

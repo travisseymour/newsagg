@@ -13,6 +13,9 @@ from pathlib import Path
 import yaml
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
+from auth import is_authed, logout, try_login
+from scraper import atomic_write_text
+
 BASE_DIR = Path(__file__).parent
 # Writable data (sources.yaml, cache/) — defaults to the code directory
 DATA_DIR = Path(os.environ.get("NEWSAGG_DATA_DIR", BASE_DIR))
@@ -32,10 +35,6 @@ newsagg_bp = Blueprint(
     template_folder="templates",
 )
 
-# Simple admin password — set via environment variable or change the default
-ADMIN_PASSWORD = os.environ.get("NEWSAGG_ADMIN_PASSWORD", "changeme")
-
-
 # ─────────────────────────────────────────────
 #  Helpers
 # ─────────────────────────────────────────────
@@ -46,8 +45,8 @@ def load_sources_config() -> list[dict]:
 
 
 def save_sources_config(sources: list[dict]):
-    SOURCES_FILE.write_text(
-        yaml.dump({"sources": sources}, allow_unicode=True, sort_keys=False)
+    atomic_write_text(
+        SOURCES_FILE, yaml.dump({"sources": sources}, allow_unicode=True, sort_keys=False)
     )
 
 
@@ -112,6 +111,31 @@ def last_updated() -> str:
 
 # Tracks whether a scrape is currently running
 _scrape_running = False
+_scrape_lock = threading.Lock()
+
+# Visitors can't trigger a manual refresh more often than this (admins can)
+SCRAPE_COOLDOWN_SECONDS = 300
+
+
+def start_scrape() -> bool:
+    """Start a background scrape unless one is already running. Returns True if started."""
+    global _scrape_running
+    from scraper import fetch_all
+
+    with _scrape_lock:
+        if _scrape_running:
+            return False
+        _scrape_running = True
+
+    def run():
+        global _scrape_running
+        try:
+            fetch_all()
+        finally:
+            _scrape_running = False
+
+    threading.Thread(target=run, daemon=True).start()
+    return True
 
 
 # ─────────────────────────────────────────────
@@ -121,7 +145,6 @@ _scrape_running = False
 
 @newsagg_bp.route("/")
 def index():
-    global _scrape_running
     sources_config = load_sources_config()
     enabled = [s for s in sources_config if s.get("enabled", True)]
 
@@ -134,19 +157,8 @@ def index():
 
     # Auto-trigger scrape if cache is empty or stale (>1 hour) and no scrape is running
     auto_refreshing = False
-    if (not feeds or cache_is_stale()) and not _scrape_running:
-        from scraper import fetch_all
-
-        def run():
-            global _scrape_running
-            _scrape_running = True
-            try:
-                fetch_all()
-            finally:
-                _scrape_running = False
-
-        threading.Thread(target=run, daemon=True).start()
-        auto_refreshing = True
+    if not feeds or cache_is_stale():
+        auto_refreshing = start_scrape()
 
     return render_template(
         "index.html",
@@ -195,22 +207,16 @@ def admin():
     """Simple admin panel to toggle sources and add new ones."""
     error = None
     success = None
-    authed = request.cookies.get("admin_authed") == ADMIN_PASSWORD
+    authed = is_authed()
 
     if request.method == "POST":
         action = request.form.get("action")
 
         # Login
         if action == "login":
-            pw = request.form.get("password", "")
-            if pw == ADMIN_PASSWORD:
-                resp = redirect(url_for("newsagg.admin"))
-                resp.set_cookie(
-                    "admin_authed", ADMIN_PASSWORD, httponly=True, samesite="Lax"
-                )
-                return resp
-            else:
-                error = "Wrong password."
+            error = try_login(request.form.get("password", ""))
+            if error is None:
+                return redirect(url_for("newsagg.admin"))
 
         elif not authed:
             error = "Not authenticated."
@@ -293,9 +299,8 @@ def admin():
 
 @newsagg_bp.route("/admin/logout")
 def admin_logout():
-    resp = redirect(url_for("newsagg.admin"))
-    resp.delete_cookie("admin_authed")
-    return resp
+    logout()
+    return redirect(url_for("newsagg.admin"))
 
 
 @newsagg_bp.route("/api/feeds")
@@ -392,21 +397,11 @@ def diagnostic():
 @newsagg_bp.route("/api/scrape", methods=["POST"])
 def api_scrape():
     """Trigger a scrape in a background thread."""
-    global _scrape_running
-    if _scrape_running:
+    age = cache_age_seconds()
+    if not is_authed() and age is not None and age < SCRAPE_COOLDOWN_SECONDS:
+        return jsonify({"status": "too_soon", "retry_after": SCRAPE_COOLDOWN_SECONDS - age})
+    if not start_scrape():
         return jsonify({"status": "already_running"})
-
-    from scraper import fetch_all
-
-    def run():
-        global _scrape_running
-        _scrape_running = True
-        try:
-            fetch_all()
-        finally:
-            _scrape_running = False
-
-    threading.Thread(target=run, daemon=True).start()
     return jsonify({"status": "started"})
 
 

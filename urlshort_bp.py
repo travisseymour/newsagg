@@ -14,6 +14,8 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
+from auth import is_authed, logout as auth_logout, try_login
+
 BASE_DIR = Path(__file__).parent
 DATA_DIR = Path(os.environ.get("NEWSAGG_DATA_DIR", BASE_DIR))
 DB_PATH = DATA_DIR / "urlshort.db"
@@ -24,9 +26,6 @@ urlshort_bp = Blueprint(
     __name__,
     template_folder="templates",
 )
-
-# Reuse the same admin password as newsagg
-ADMIN_PASSWORD = os.environ.get("NEWSAGG_ADMIN_PASSWORD", "changeme")
 
 # Characters used for generating short codes (no ambiguous chars like 0/O, 1/l)
 CODE_CHARS = string.ascii_lowercase + string.digits
@@ -170,7 +169,7 @@ def admin():
     """Admin panel to manage short URLs."""
     error = None
     success = None
-    authed = request.cookies.get("urlshort_authed") == ADMIN_PASSWORD
+    authed = is_authed()
 
     return render_template(
         "urlshort_admin.html",
@@ -186,19 +185,15 @@ def admin_post():
     """Handle admin form submissions."""
     error = None
     success = None
-    authed = request.cookies.get("urlshort_authed") == ADMIN_PASSWORD
+    authed = is_authed()
 
     action = request.form.get("action")
 
     # Login
     if action == "login":
-        pw = request.form.get("password", "")
-        if pw == ADMIN_PASSWORD:
-            resp = redirect(url_for("urlshort.admin"))
-            resp.set_cookie("urlshort_authed", ADMIN_PASSWORD, httponly=True, samesite="Lax")
-            return resp
-        else:
-            error = "Wrong password."
+        error = try_login(request.form.get("password", ""))
+        if error is None:
+            return redirect(url_for("urlshort.admin"))
 
     elif not authed:
         error = "Not authenticated."
@@ -235,15 +230,14 @@ def admin_post():
 @urlshort_bp.route("/logout")
 def logout():
     """Clear admin session."""
-    resp = redirect(url_for("urlshort.admin"))
-    resp.delete_cookie("urlshort_authed")
-    return resp
+    auth_logout()
+    return redirect(url_for("urlshort.admin"))
 
 
 @urlshort_bp.route("/api/shorten", methods=["POST"])
 def api_shorten():
     """JSON API to create a short URL."""
-    authed = request.cookies.get("urlshort_authed") == ADMIN_PASSWORD
+    authed = is_authed()
     if not authed:
         return jsonify({"error": "Not authenticated"}), 401
 
@@ -261,7 +255,7 @@ def api_shorten():
 @urlshort_bp.route("/api/urls")
 def api_urls():
     """JSON API to list all short URLs."""
-    authed = request.cookies.get("urlshort_authed") == ADMIN_PASSWORD
+    authed = is_authed()
     if not authed:
         return jsonify({"error": "Not authenticated"}), 401
     return jsonify({"urls": get_all_urls()})

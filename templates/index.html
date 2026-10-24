@@ -629,6 +629,9 @@
         if (data.status === 'started' || data.status === 'already_running') {
           setRunning(true);
           pollInterval = setInterval(pollStatus, 2000);
+        } else if (data.status === 'too_soon') {
+          // Feeds were refreshed recently; just show the latest
+          window.location.reload();
         }
       })
       .catch(() => setRunning(false));

@@ -13,6 +13,8 @@ from html import unescape
 import feedparser
 from flask import Blueprint, render_template
 
+from scraper import is_http_url
+
 # Create the blueprint
 reddagg_bp = Blueprint(
     "reddagg",
@@ -140,7 +142,7 @@ def fetch_reddit_posts(limit: int = 50) -> tuple[list[dict], str | None]:
             title = getattr(entry, "title", "").strip()
             link = getattr(entry, "link", "").strip()
 
-            if not title or not link:
+            if not title or not is_http_url(link):
                 continue
 
             # Get content for thumbnail extraction
@@ -162,7 +164,11 @@ def fetch_reddit_posts(limit: int = 50) -> tuple[list[dict], str | None]:
 
             # Check for external link (image or URL post)
             external_link = extract_external_link(content)
+            if external_link and not is_http_url(external_link):
+                external_link = None
             thumbnail = extract_thumbnail(content)
+            if thumbnail and not is_http_url(thumbnail):
+                thumbnail = None
 
             # Use external link directly if it's media or an external URL
             if external_link:
