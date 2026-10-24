@@ -5,6 +5,7 @@ This is registered under /newsagg in the main app.
 """
 
 import json
+import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,8 +14,10 @@ import yaml
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).parent
-CACHE_DIR = BASE_DIR / "cache"
-SOURCES_FILE = BASE_DIR / "sources.yaml"
+# Writable data (sources.yaml, cache/) — defaults to the code directory
+DATA_DIR = Path(os.environ.get("NEWSAGG_DATA_DIR", BASE_DIR))
+CACHE_DIR = DATA_DIR / "cache"
+SOURCES_FILE = DATA_DIR / "sources.yaml"
 SOURCES_EXAMPLE = BASE_DIR / "sources.yaml.example"
 
 # Initialize sources.yaml from example if it doesn't exist
@@ -30,8 +33,6 @@ newsagg_bp = Blueprint(
 )
 
 # Simple admin password — set via environment variable or change the default
-import os
-
 ADMIN_PASSWORD = os.environ.get("NEWSAGG_ADMIN_PASSWORD", "changeme")
 
 

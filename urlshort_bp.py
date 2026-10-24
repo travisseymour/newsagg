@@ -15,7 +15,8 @@ from pathlib import Path
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "urlshort.db"
+DATA_DIR = Path(os.environ.get("NEWSAGG_DATA_DIR", BASE_DIR))
+DB_PATH = DATA_DIR / "urlshort.db"
 
 # Create the blueprint
 urlshort_bp = Blueprint(

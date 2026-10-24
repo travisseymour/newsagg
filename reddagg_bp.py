@@ -5,6 +5,8 @@ This is registered under /reddagg in the main app.
 """
 
 import re
+import threading
+import time
 from datetime import datetime, timezone
 from html import unescape
 
@@ -21,6 +23,12 @@ reddagg_bp = Blueprint(
 # Reddit RSS feed (limit parameter requests more items, max ~100)
 REDDIT_RSS_URL = "https://www.reddit.com/.rss?limit={limit}"
 USER_AGENT = "ReddAgg/1.0 (newsagg aggregator)"
+
+# Reddit rate-limits unauthenticated requests hard, so cache the front page
+# instead of fetching it on every page view
+CACHE_TTL_SECONDS = 300
+_cache = {"posts": [], "fetched_at": 0.0}
+_cache_lock = threading.Lock()
 
 
 def extract_thumbnail(content: str) -> str | None:
@@ -185,10 +193,28 @@ def fetch_reddit_posts(limit: int = 50) -> tuple[list[dict], str | None]:
         return [], str(e)
 
 
+def get_cached_posts() -> tuple[list[dict], str | None]:
+    """Return front page posts, refetching at most once per CACHE_TTL_SECONDS.
+
+    If a refetch fails, keep serving the last good posts.
+    """
+    with _cache_lock:
+        if _cache["posts"] and time.time() - _cache["fetched_at"] < CACHE_TTL_SECONDS:
+            return _cache["posts"], None
+        posts, error = fetch_reddit_posts()
+        if posts:
+            _cache["posts"] = posts
+            _cache["fetched_at"] = time.time()
+            return posts, None
+        if _cache["posts"]:
+            return _cache["posts"], None
+        return [], error
+
+
 @reddagg_bp.route("/")
 def index():
     """Display Reddit front page posts with thumbnails."""
-    posts, error = fetch_reddit_posts()
+    posts, error = get_cached_posts()
 
     return render_template(
         "reddagg.html",

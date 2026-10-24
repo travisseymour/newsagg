@@ -35,10 +35,10 @@ app.register_blueprint(urlshort_bp, url_prefix="/url")
 
 def get_version() -> str:
     """Return the short git commit hash, or 'dev' if not available."""
-    # Railway sets this environment variable during deployment
-    railway_sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA")
-    if railway_sha:
-        return railway_sha[:7]  # Short hash (first 7 chars)
+    # Railway sets RAILWAY_GIT_COMMIT_SHA; other deployments can set GIT_SHA
+    env_sha = os.environ.get("GIT_SHA") or os.environ.get("RAILWAY_GIT_COMMIT_SHA")
+    if env_sha:
+        return env_sha[:7]  # Short hash (first 7 chars)
 
     # Fall back to git command for local development
     try:

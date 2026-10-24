@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
 import logging
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -38,8 +39,9 @@ Manual refresh is available via the UI button or POST /api/scrape.
 """
 
 BASE_DIR = Path(__file__).parent
-CACHE_DIR = BASE_DIR / "cache"
-SOURCES_FILE = BASE_DIR / "sources.yaml"
+DATA_DIR = Path(os.environ.get("NEWSAGG_DATA_DIR", BASE_DIR))
+CACHE_DIR = DATA_DIR / "cache"
+SOURCES_FILE = DATA_DIR / "sources.yaml"
 ARTICLES_PER_SOURCE = 15
 
 logging.basicConfig(
@@ -178,7 +180,7 @@ def safe_filename(name: str) -> str:
 
 
 def fetch_all():
-    CACHE_DIR.mkdir(exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     sources = yaml.safe_load(SOURCES_FILE.read_text())["sources"]
 
     enabled = [s for s in sources if s.get("enabled", True)]
